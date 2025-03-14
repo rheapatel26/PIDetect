@@ -167,10 +167,6 @@ Core Capabilities:
 
 """
 
-    diagram_context = f"\nThe uploaded P&ID contains the following detected symbols: {', '.join(detected_symbols)}. "
-    full_prompt = context_prompt + diagram_context + "\n\nUser Query: " + chat_input
-
-
     model = "gemini-2.0-flash"
     contents = [
         types.Content(
