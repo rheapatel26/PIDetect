@@ -1,0 +1,15 @@
+numpy
+opencv_python
+Pillow
+protobuf
+streamlit
+streamlit_image_select
+ultralytics
+google-ai-generativelanguage
+google-api-core
+google-api-python-client
+google-auth
+google-auth-httplib2
+google-genai
+google-generativeai
+googleapis-common-protos
