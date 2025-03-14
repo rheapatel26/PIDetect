@@ -38,15 +38,24 @@ def bounding_box(image_np, results):
             cv2.rectangle(image_np, (x1, y1), (x2, y2), color, 2)
             cv2.putText(image_np, f"{label}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
 
-def generate(chat_input):
-    api_key = str(st.secrets["GEMINI_API_KEY"])  # Ensure it's a string
+import streamlit as st
+import google.generativeai as genai
+import os
 
-    client = genai.Client(api_key=api_key)
+# Load API key from Streamlit secrets or environment variable
+api_key = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
 
-    context_prompt = """Objective:
-You are a chatbot designed to assist engineers in understanding and working with architecture diagrams. Your primary function is to accurately label diagrams, identify symbols, provide explanations, and handle FAQs related to P&ID and other engineering schematics. You must ensure precise responses for engineers working in industries similar to engineering service companies.
+if not api_key:
+    st.error("Missing API key. Please set 'GEMINI_API_KEY' in Streamlit secrets.")
+    st.stop()
 
-If any out-of-topic or out-of-domain questions are asked, politely redirect users to industry-based information and relevant engineering queries. Complete your answer and do not exceed 500 words
+# Configure Gemini API
+genai.configure(api_key=api_key)
+
+# Define system prompt
+context_prompt = """Objective:
+You are a chatbot designed to assist engineers in understanding and working with architecture diagrams. Your primary function is to accurately label diagrams, identify symbols, provide explanations, and handle FAQs related to P&ID and other engineering schematics. 
+If any out-of-topic or out-of-domain questions are asked, politely redirect users to industry-based information and relevant engineering queries. Keep responses under 500 words.
 
 Core Capabilities:
 1. Architecture Labeling
@@ -57,142 +66,23 @@ Core Capabilities:
    - Lists all symbols present in a diagram.
    - Allows users to filter specific symbols.
    - Highlights selected symbols within the diagram.
-3. ChatGPT-4o-mini for FAQs and Doubts
-   - Answers technical queries about architecture and symbols.
-   - Provides industry-standard explanations for components.
-   - Assists in troubleshooting and best practices.
- General Engineering Knowledge for the Chatbot
-# Common Engineering Symbols and Their Meanings:
-1. Pipelines and Flow Indicators
-   - Solid Line: General Process Flow
-   - Dashed Line: Instrumentation Signal Flow
-   - Arrow: Flow Direction
-   - Double Line: Insulated Pipeline
-2. Valves
-   - Gate Valve: Controls flow by lifting a barrier.
-   - Check Valve: Allows unidirectional flow, prevents backflow.
-   - Ball Valve: Quick shut-off using a spherical disc.
-   - Globe Valve: Regulates flow precisely.
-3. Instruments
-   - PT (Pressure Transmitter): Measures pressure.
-   - FT (Flow Transmitter): Measures fluid flow.
-   - TT (Temperature Transmitter): Measures temperature.
-   - LT (Level Transmitter): Measures liquid levels.
-4. Pumps and Compressors
-   - Centrifugal Pump: Used for fluid transport.
-   - Reciprocating Pump: Uses pistons for high-pressure applications.
-   - Rotary Compressor: Continuous compression mechanism.
-   - Screw Compressor: Used in gas transport and HVAC systems.
-5. Tanks and Vessels
-   - Storage Tank: Holds liquids/gases.
-   - Pressure Vessel: Stores high-pressure substances.
-   - Reactors: Used for chemical processing.
-6. Electrical Components
-   - Motor Symbols: Represent different motor types.
-   - Transformers: Step-up/down voltage conversion.
-   - Circuit Breakers: Protect against short circuits.
-
- 15 Key FAQs for Fine-Tuning (with Answers):
-1. What do the different pipeline line types indicate in a P&ID?  
-
-   Pipeline line types represent different functions: solid lines indicate general process flow, dashed lines represent instrumentation signal flow, and double lines denote insulated pipelines.
-
-2. How can I filter and view only the control valves in my architecture?  
-
-   Use the filter function to select 'Control Valves' from the available categories. The system will highlight only those valves in your diagram.
-
-3. What is the difference between a centrifugal and reciprocating pump?  
-
-   A centrifugal pump uses rotational energy to move fluids, while a reciprocating pump uses pistons to generate pressure-driven flow.
-
-4. How does a pressure transmitter (PT) function?  
-
-   A pressure transmitter converts pressure measurements into an electrical signal that can be read by monitoring systems.
-
-5. Can you explain how a check valve prevents backflow?  
-
-   A check valve allows fluid to flow in one direction and automatically closes to prevent backflow when the flow stops.
-
-6. What is the significance of different arrow types in pipeline diagrams?  
-
-   Arrows indicate flow direction. Single arrows show standard flow, while double arrows may indicate bidirectional flow.
-
-7. How do I identify insulated pipelines in my diagram?  
-
-   Insulated pipelines are typically represented by double lines in P&ID diagrams.
-
-8. What is the purpose of a globe valve in a piping system?  
-
-   A globe valve regulates fluid flow with precise control by raising or lowering a disk.
-
-9. How does the filter function help in isolating components in my diagram?  
-
-   The filter function enables users to highlight and isolate specific symbols, making it easier to focus on particular components.
-
-10. What does a dashed line mean in a control system architecture?  
-
-    Dashed lines represent signal flows, typically from instrumentation or control systems.
-
-11. How do I ensure that my architecture diagram follows industry standards?  
-
-    Use standardized symbols and adhere to P&ID conventions such as ISA S5.1 and ISO 14617.
-
-12. What is the function of a motor in a process system?  
-
-    A motor converts electrical energy into mechanical energy to drive pumps, compressors, or conveyors.
-
-13. Why are reactors used in chemical processing plants?  
-
-    Reactors facilitate chemical reactions under controlled conditions for efficient production.
-
-14. How does a pressure vessel differ from a storage tank?  
-
-    Pressure vessels store substances under high pressure, whereas storage tanks hold liquids or gases at near-atmospheric pressure.
-
-15. Can you provide recommendations for improving pipeline efficiency?  
-
-    Optimize pipe sizing, minimize bends, maintain proper insulation, and use high-efficiency pumps and valves.
-
- Response Format for the Chatbot:
-
-- Clear and concise responses.
-
-- Diagrams where applicable.
-
-- References to industry standards.
-
-- Step-by-step guidance for troubleshooting.
-
-- User-friendly and technical explanations.
-
+3. Chatbot for FAQs and Engineering Queries
+   - Answers user questions based on P&ID and engineering concepts.
 """
-    MAX_TOKENS = 100
 
+# Function to generate response using Gemini API
+def generate(chat_input):
+    model = genai.GenerativeModel("gemini-pro")  # Use "gemini-pro" for accuracy
+    response = model.generate_content(f"{context_prompt}\n\nUser: {chat_input}\n\nAssistant:")
+    return response.text
 
-    model = "gemini-2.0-flash"
-    contents = [
-        types.Content(
-            role="user",
-            parts=[
-                types.Part.from_text(text=chat_input),
-            ],
-        ),
-    ]
-    generate_content_config = types.GenerateContentConfig(
-        temperature=1,
-        top_p=0.95,
-        top_k=40,
-        max_output_tokens=200,
-        response_mime_type="text/plain",
-    )
-    response_text = ""
-    for chunk in client.models.generate_content_stream(
-        model=model,
-        contents=contents,
-        config=generate_content_config,
-    ):
-        response_text += chunk.text
-    return response_text
+# Streamlit UI
+st.title("P&ID Chatbot - Powered by Gemini AI")
+
+user_input = st.text_input("Ask your engineering question:")
+if user_input:
+    response = generate(user_input)
+    st.write(response)
 
 
 # --------------- FUNCTIONS END -------------------------
