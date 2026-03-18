@@ -5,8 +5,7 @@ import time
 import numpy as np
 import cv2
 from streamlit_image_select import image_select
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 
 # --------------- FUNCTIONS START -------------------------
 def img_proc(img):
